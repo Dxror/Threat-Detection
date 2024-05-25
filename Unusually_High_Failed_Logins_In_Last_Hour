@@ -1,0 +1,5 @@
+index=ciam (outcome=DENIED OR outcome=BLOCKED) _time>relative_time(now(), "-1h")
+| stats count by login_id as failed_logins_last_hour 
+| join login_id [| stats avg(failed_logins) as hourly_mean, stdev(failed_logins) as hourly_stddev by login_id 
+                   | where _time<relative_time(now(), "-1h")]
+| where failed_logins_last_hour > hourly_mean + 3 * hourly_stddev

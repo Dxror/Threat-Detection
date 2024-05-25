@@ -1,0 +1,4 @@
+index=activedirectory sourcetype=windows:eventlog EventCode=4625 
+| stats count as failed_logins by _time
+| ewma(failed_logins, 0.94) as ewma_failed_logins
+| threshold(ewma_failed_logins, 3, direction=above, label="Anomalous Failed Logins")

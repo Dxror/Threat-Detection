@@ -1,0 +1,11 @@
+MITRE ATT&CK Technique T1048 is concerned with malicious actors using a client machine to send a lot more data than it gets using a different protocol like Domain Name Service (DNS). Usually, SOC teams don’t keep an eye on DNS because it's mostly used for translating domain names, not moving data around. 
+DNS queries can actually move data between connected systems. And that's a problem because it makes DNS an easy way for cyber-attacks to send commands and sneak out data using DNS tunneling.
+
+This SPL queries for any device that is sending five times or more data than it is getting. I used the botsv3 index. 
+
+index="botsv3" sourcetype=stream:dns
+| stats sum(bytes_out) as bytes_sent sum(bytes_in) as bytes_received by src_ip
+| eval bytes_ratio=bytes_sent/bytes_received
+| where bytes_ratio>5 
+| rename src_ip as client_ip
+| fields client_ip, src_ip, bytes_sent, bytes_received, bytes_ratio

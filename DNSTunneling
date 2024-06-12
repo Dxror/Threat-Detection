@@ -1,6 +1,17 @@
-MITRE ATT&CK Technique T1048 is concerned with malicious actors using a client machine to send a lot more data than it 
-gets using a different protocol like Domain Name Service (DNS). This SPL queries for any device that is sending five 
-times or more data than it is getting. I used the botsv3 index. 
+A couple of weeks I set up a honeypot using T-Pot, nothing too exciting. Most of the ‘attacks’ are  mass scanners, just out there scanning every single port. A couple of half-hearted attempts at some other attacks that I assume are automated since there was no follow-up. Two weeks later something interesting started to happen, some DNS tunneling. 
+
+Or more specifically MITRE ATT&CK Technique T1071.004. This refers to the abuse of the Domain Name System (DNS) application layer protocol by adversaries for command and control (C2) communications. This technique involves embedding commands and data within the DNS protocol traffic to blend in with legitimate network traffic and evade detection or bypass network filtering.
+
+Adversaries exploit the DNS protocol because:
+DNS serves an administrative function and is commonly allowed even before network authentication, making it harder to block.
+DNS packets contain numerous fields and headers where data can be concealed, allowing adversaries to hide malicious traffic.
+DNS traffic mimics normal network activity, helping adversaries blend in and avoid raising suspicions.
+
+So how do we find this activity? The Mitre Att&ck site provides us with the following - monitor extraneous packets that do not belong to established flows, gratuitous or anomalous traffic patterns, anomalous syntax, or structure.
+
+We could run a check for any device that is sending more DNS data than it is getting. For regular DNS lookups, the amount of data sent (requests) should be less than the amount received (responses) since the requests are small queries while the responses contain the actual lookup data. In DNS tunneling this pattern is reversed.
+
+So let’s create a SPL query, using our old faithful BOTS V3 index:
 
 index="botsv3" sourcetype=stream:dns
 | stats sum(bytes_out) as bytes_sent sum(bytes_in) as bytes_received by src_ip
@@ -8,3 +19,6 @@ index="botsv3" sourcetype=stream:dns
 | where bytes_ratio>5 
 | rename src_ip as client_ip
 | fields client_ip, src_ip, bytes_sent, bytes_received, bytes_ratio
+
+
+This query will output all devices that are sending 5 times or more DNS data than they are receiving. If you’re running it against the botsv3 index, you should see two src_ips that have ratios over five and one that has ratio of over six. Definitely worth looking into. 
